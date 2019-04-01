@@ -7,8 +7,7 @@
 </head>
 <body>
     <div class="container-fluid" style='max-width: 400px'>
-        <h1>Tool per abilitare e disabilitare navigazione aule</h1>
-        <h2>La spunta attiva indica che la relativa regola è abilitata, quindi l'aula è bloccata</h2>
+        <h1>Blocco delle aule alla navigazione</h1>
         <table class="cockpit-form-table" id="fwrules-table">
             <tr>
                 <td><button class="btn btn-default btn-primary" id="fwrules-update">Aggiorna firewall</button></td>
@@ -41,10 +40,12 @@
             let html = '<tr>';
             html += '<td><label class="control-label" for="fwrule-n' + fwrule.name + '">' + fwrule.props.Description + '</label></td>';
             html += '<td><input class="form-control" type="checkbox" name="fwrule-status" id="fwrule-n' + fwrule.name + '" ';
-            if (fwrule.props.status == "enabled") {
-                html += "checked ";
+            if (fwrule.props.status == "disabled") {
+                html += "checked > navigazione attiva";
+            } else {
+                html += "> navigazione bloccata";
             }
-            html += '></td>';
+            html += '</td>';
             html += '</tr>';
             return html;
         }
