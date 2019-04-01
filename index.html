@@ -29,7 +29,7 @@
         $(document).ready(fwrules_load);
 
         function fwrules_load() {
-            var proc = cockpit.spawn(["/sbin/e-smith/db", e_smith_fname, 'printjson']);
+            var proc = cockpit.spawn(["/usr/bin/sudo", "/sbin/e-smith/db", e_smith_fname, 'printjson']);
             // proc.done(do_success);
             proc.stream(load_table);
             proc.fail(do_fail);
@@ -88,7 +88,7 @@
             n_rules_applied += 1;
 
             if (n_rules_to_apply == n_rules_applied) {
-                var proc = cockpit.spawn(['/sbin/e-smith/signal-event', 'firewall-adjust']);
+                var proc = cockpit.spawn(["/usr/bin/sudo", '/sbin/e-smith/signal-event', 'firewall-adjust']);
                 proc.done(do_success);
                 proc.stream(append_output);
                 proc.fail(do_fail);
