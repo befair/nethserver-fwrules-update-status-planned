@@ -9,4 +9,8 @@ and ... enjoy!
 ## Enable a specific group to manage firewall rules
 
 1. Add users to a dedicated group (i.e: "docenti")
-2. Copy `99_nethserver_fwrules.sudoers` in `/etc/sudoers.d/99_nethserver_fwrules` (TODO FIXME see nethserver documentation for templates)
+2. Copy `99_nethserver_fwrules.sudoers` in `/etc/sudoers.d/99_nethserver_fwrules` (WARNING: remove ".sudoers" extension)
+
+Optional: if you want to enable all rules at midnight
+
+3. Copy `nethserver_fwrules.cron` in `/etc/cron.d/nethserver_fwrules`

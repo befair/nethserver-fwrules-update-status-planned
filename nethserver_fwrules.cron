@@ -1,0 +1,3 @@
+# Cron file to reset firewall rules
+
+0 0 * * * root /usr/share/cockpit/nethserver-fwrules-update-status/reset_rules.sh
