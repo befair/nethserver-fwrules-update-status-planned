@@ -58,10 +58,12 @@
             let html = '';
             for (k in obj) {
                 let fwrule = obj[k];
-                if (fwrule.props.Src.startsWith("iprange;")) {
-                    n_rules_to_apply += 1;
-                    html += generate_row(fwrule);
-                }
+		if (fwrule.props) {
+			if (fwrule.props.Src.startsWith("iprange;")) {
+			    n_rules_to_apply += 1;
+			    html += generate_row(fwrule);
+			}
+		}
             }
             if (html)
                 $('#fwrules-table').prepend(html);
