@@ -11,11 +11,24 @@
 <body>
     <div class="container-fluid" style='max-width: 400px'>
         <h1>Blocco delle aule alla navigazione</h1>
-        <table class="cockpit-form-table" id="fwrules-table">
+        <table class="cockpit-form-table">
+            <thead>
+                <tr>
+                    <th colspan="6">LUN</th>
+                    <th colspan="6">MAR</th>
+                    <th colspan="6">MER</th>
+                    <th colspan="6">GIO</th>
+                    <th colspan="6">VEN</th>
+                    <th colspan="6">SAB</th>
+                </tr>
+                <tr id="fwrules-thead"></tr>
+            </thead>
+            <tbody id="fwrules-tbody">
             <tr>
                 <td><button class="btn btn-default btn-primary" id="fwrules-update">Aggiorna firewall</button></td>
                 <td><span id="result"></span></td>
             </tr>
+            </tbody>
         </table>
         <p>
         <!-- <pre id="output"></pre> -->
@@ -24,11 +37,50 @@
 
     <script>
         var result = $("#result");
+        var e_smith_hours_fname = '/var/lib/nethserver/db/weekly-hours'
         var e_smith_fname = '/var/lib/nethserver/db/fwrules'
         var n_rules_to_apply = 0; //Global counter for number of rules
-        var n_rules_applied = 0; //Global counter for number of applied rules
+        var n_rules_applied = 0;  //Global counter for number of applied rules
 
-        $(document).ready(fwrules_load);
+        var day_hours = [];       //List of DAYNUM/HOUR
+        var super_headers = [];   // List of DAYs
+        var sub_headers = [];     // List of HOURs
+
+        $(document).ready(hours_load);
+
+        // Header loading with hours info
+        function hours_load() {
+            var proc = cockpit.spawn(["/usr/bin/sudo", "/sbin/e-smith/db", e_smith_hours_fname, 'printjson']);
+            // proc.done(do_success);
+            proc.stream(load_thead);
+            proc.fail(do_fail);
+
+            result.empty();
+        }
+
+        function load_thead(data) {
+            let obj = JSON.parse(data);
+            let html = '';
+            for (k in obj) {
+                let timing = obj[k];
+                super_headers.push(timing.name);
+                sub_headers.push([]);
+                day_hours.push([]);
+                for (let c=1; c<7; c++) {
+                    if (timing.props[c]) {
+                        sub_headers[sub_headers.length].push(c);
+                        day_hours[day_hours.length].push(timing.name+'/'+timing.props[c]);
+                    }
+                }
+            }
+            $('#fwrules-thead').prepend("<tr>" + super_headers.map(generate_th_rows) + "</tr>");
+            $('#fwrules-thead').prepend("<tr>" + sub_headers.map(generate_th_rows) + "</tr>");
+        }
+
+        function generate_th_rows(el) {
+            return "<th>" + el + "</th>";
+        }
+        // end of header generation
 
         function fwrules_load() {
             var proc = cockpit.spawn(["/usr/bin/sudo", "/sbin/e-smith/db", e_smith_fname, 'printjson']);
@@ -58,15 +110,15 @@
             let html = '';
             for (k in obj) {
                 let fwrule = obj[k];
-		if (fwrule.props) {
-			if (fwrule.props.Src.startsWith("iprange;")) {
-			    n_rules_to_apply += 1;
-			    html += generate_row(fwrule);
-			}
-		}
+                if (fwrule.props) {
+                    if (fwrule.props.Src.startsWith("iprange;")) {
+                        n_rules_to_apply += 1;
+                        html += generate_row(fwrule);
+                    }
+                }
             }
             if (html)
-                $('#fwrules-table').prepend(html);
+                $('#fwrules-tbody').prepend(html);
         }
 
         $("#fwrules-update").on("click", fwrules_update);
