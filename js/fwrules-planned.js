@@ -57,7 +57,8 @@ function generate_row(fwrule) {
     html += '<td><label class="control-label" for="fwrule-n' + fwrule.name + '">' + fwrule.props.Description + '</label></td>';
     for (k in day_hours) {
         let el = day_hours[k];
-        html += '<td><input class="form-control" type="checkbox" name="fwrule-status" data-fwrule="' + fwrule.name + '" data-day="'+ el.day + '" data-hour="' + el.hour +'" ';
+        let title = fwrule.props.Description + ' ' + DAYS[el.day] + ' ' + el.hour;
+        html += '<td><input class="form-control" title="'+ title +'" type="checkbox" name="fwrule-status" data-fwrule="' + fwrule.name + '" data-day="'+ el.day + '" data-hour="' + el.hour +'" ';
         if (fwrule.props.status == "disabled") {
             html += ' checked ></td>';
         } else {
