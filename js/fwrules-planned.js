@@ -2,6 +2,9 @@ var result = $("#result");
 var e_smith_fname_hours = '/var/lib/nethserver/db/weekly-hours';
 var e_smith_fname_plan = '/var/lib/nethserver/db/fwrules-plan';
 var e_smith_fname = '/var/lib/nethserver/db/fwrules.carducci-galilei';
+
+var FWRULES = {};
+
 var n_rules_to_apply = 0; //Global counter for number of rules
 var n_rules_applied = 0;  //Global counter for number of applied rules
 
@@ -52,14 +55,29 @@ function hours_load() {
  * BEGIN body generation
  ***************************/
 
-function generate_row(fwrule) {
+function is_open(fwrule, el, open_hours) {
+    let result = false;
+
+    let open_day = open_hours[el.day];
+    if (open_day && open_day[el.hour]) {
+        //check if the rule is here as a value
+        let open_places = open_day[el.hour].split(",");
+        if (open_places.indexOf(fwrule.name) != -1)
+            result = true;
+    }
+
+    return result;
+
+}
+
+function generate_row(fwrule, open_hours) {
     let html = '<tr>';
     html += '<td><label class="control-label" for="fwrule-n' + fwrule.name + '">' + fwrule.props.Description + '</label></td>';
     for (k in day_hours) {
         let el = day_hours[k];
         let title = fwrule.props.Description + ' ' + DAYS[el.day] + ' ' + el.hour;
         html += '<td><input class="form-control" title="'+ title +'" type="checkbox" name="fwrule-status" data-fwrule="' + fwrule.name + '" data-day="'+ el.day + '" data-hour="' + el.hour +'" ';
-        if (fwrule.props.status == "disabled") {
+        if (is_open(fwrule, el, open_hours)) {
             html += ' checked ></td>';
         } else {
             html += '></td>';
@@ -70,15 +88,33 @@ function generate_row(fwrule) {
     return html;
 }
 
+function load_fwrules(data) {
+    FWRULES = JSON.parse(data);
+    let proc = cockpit.spawn(["/usr/bin/sudo", "/sbin/e-smith/db", e_smith_fname_plan, 'printjson']);
+    proc.stream(load_tbody);
+    proc.fail(do_fail);
+}
+
+function get_open_hours(e_smith_json) {
+    let open_hours = {};
+    for (k in e_smith_json) {
+        let obj = e_smith_json[k];
+        open_hours[obj.name] = obj.props;
+    }
+    return open_hours;
+}
+
+
 function load_tbody(data) {
-    let obj = JSON.parse(data);
+    let open_hours = get_open_hours(JSON.parse(data));
+    
     let html = '';
-    for (k in obj) {
-        let fwrule = obj[k];
+    for (k in FWRULES) {
+        let fwrule = FWRULES[k];
         if (fwrule.props) {
             if (fwrule.props.Src.startsWith("iprange;")) {
                 n_rules_to_apply += 1;
-                html += generate_row(fwrule);
+                html += generate_row(fwrule, open_hours);
             }
         }
     }
@@ -89,7 +125,7 @@ function load_tbody(data) {
 function fwrules_planned_load() {
     var proc = cockpit.spawn(["/usr/bin/sudo", "/sbin/e-smith/db", e_smith_fname, 'printjson']);
     // proc.done(do_success);
-    proc.stream(load_tbody);
+    proc.stream(load_fwrules);
     proc.fail(do_fail);
 
     result.empty();
