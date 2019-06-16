@@ -106,23 +106,38 @@ function fwrules_update() {
     $('input[type=checkbox]').each(function() {
 
         let self = $(this);
-        let status = "disabled";
-        if (!this.checked) {
-            status = "enabled";
+        let status = "enabled";
+        if (this.checked) {
+            status = "disabled";
+
+            // Build e-smith structure to be passed to the db "set" command
+            // Struct is like: {
+            //   "nday": { "hour": ["fwrulen", .... ]}
+            e_smith_key = self.attr('data-day');
+            if (!e_smith_struct[e_smith_key]) {
+                e_smith_struct[e_smith_key] = {};
+            }
+            let h = self.attr('data-hour');
+            if (!e_smith_struct[e_smith_key][h]) {
+                e_smith_struct[e_smith_key][h] = [self.attr('data-fwrule')];
+            } else {
+                e_smith_struct[e_smith_key][h].push(self.attr('data-fwrule'));
+            }
         }
-        // Build e-smith structure to be passed to the db "set" command
-        e_smith_key = self.attr('data-day');
-        e_smith_prop = self.attr('data-fwrule') + '-' + self.attr('data-hour');
-        if (!e_smith_struct[e_smith_key]) {
-            e_smith_struct[e_smith_key] = []
-        }
-        e_smith_struct[e_smith_key].push(e_smith_prop);
-        e_smith_struct[e_smith_key].push(status);
     });
 
-    // Apply firewall plans
-    for (k in e_smith_struct) {
-        let props = e_smith_struct[k];
+    // Define firewall plans -- only used to disable rules
+    for (k in DAYS) {
+        let props = [];
+        if (k in e_smith_struct) {
+            let props_obj = e_smith_struct[k];
+            for (khour in props_obj) {
+                props.push(khour);
+                props.push(props_obj[khour].toString());
+            }
+        } else {
+            props = [];
+        }
         var proc = cockpit.spawn(['/usr/bin/sudo', '/sbin/e-smith/db', e_smith_fname_plan, 'set', k, "configuration"].concat(props));
         proc.done(do_success);
         proc.fail(do_fail);
