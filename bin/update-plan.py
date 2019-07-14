@@ -12,14 +12,14 @@ from datetime import datetime, timedelta, time
 # --- Configuration ---
 
 PATH_WEEKLY_HOURS = '/home/fero/src/befair/nethserver-fwrules-update-status-planned/doc/weekly-hours-output'
-PATH_FWRULES_PLAN = '/home/fero/src/befair/nethserver-fwrules-update-status-planned/doc/weekly-hours-output'
+PATH_FWRULES_PLAN = '/home/fero/src/befair/nethserver-fwrules-update-status-planned/doc/fwrules-plan.json'
 PATH_BASENAME_SYSTEMD = '/etc/systemd/system/fwrules-{kind}'
 DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 MINUTES_THRESHOLD = 15
 
 TEMPLATE_SYSTEMD_TIMER="""
 [Unit]
-Description=Enable fwrules for {dow} {time}
+Description={kind} fwrules for {dow} {time}
 
 [Timer]
 OnCalendar={dow} {time}
@@ -31,9 +31,10 @@ WantedBy=timers.target
 """
 
 # --- Setup ---
+# Create systemd services
 
 for kind in ('enable', 'disable'):
-    path_systemd = PATH_BASENAME_SYSTEMD.format(kind=kind)
+    path_systemd = PATH_BASENAME_SYSTEMD.format(kind=kind) + "@.service"
     if not os.path.exists(path_systemd):
         with open(path_systemd, "w") as f:
             f.write("""
@@ -64,10 +65,15 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, rules_to_enable=[], rules_en
     hour_start = dt_hour - timedelta(minutes=MINUTES_THRESHOLD)
     hour_start_str= hour_start.time().strftime("%H:%M")
 
+    # TODO WARNING: apply a delay if there are timers scheduled now!!
+    # TODO WARNING: delete previous timers
+    # TODO WARNING: decide what to do with active rules!
     # Create timers
-    print(TEMPLATE_SYSTEMD_TIMER.format(
-        kind='enable', rules=",".join(rules_to_enable),
-        dow=dow, time=hour_start_str)
+    path_systemd = PATH_BASENAME_SYSTEMD.format(kind='enable') + ".timer"
+    with open(path_systemd, "w") as f:
+        f.write(TEMPLATE_SYSTEMD_TIMER.format(
+            kind='enable', rules=",".join(rules_to_enable),
+            dow=dow, time=hour_start_str))
 
     # For each rule previously enabled
     rules_to_disable = set(rules_enabled) - set(rules_to_enable)
@@ -75,12 +81,15 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, rules_to_enable=[], rules_en
     if rules_to_disable:
         # Set ending hours 15 minutes after hour ends
         hour_end = dt_hour + timedelta(minutes=MINUTES_THRESHOLD)
-        hour_end_str= hour_end.time().strftime("%H:%M")
+        hour_end_str = hour_end.time().strftime("%H:%M")
 
-        timer_date="{} {}".format(dow, ",".join(hours_end_strs))
-        print("OnCalendar={}".format(timer_date))
+        path_systemd = PATH_BASENAME_SYSTEMD.format(kind='disable') + ".timer"
+        with open(path_systemd, "w") as f:
+            f.write(TEMPLATE_SYSTEMD_TIMER.format(
+                kind='disable', rules=",".join(rules_to_enable),
+                dow=dow, time=hour_end_str))
 
-    # Update rules previously enabled
+    # Update (in-place) rules previously enabled
     rules_enabled = rules_to_enable
 
 

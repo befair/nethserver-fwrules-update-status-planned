@@ -183,19 +183,6 @@ function fwrules_update() {
     };
 }
 
-// Step 2
-/* function firewall_adjust() {
-    n_rules_applied += 1;
-
-    if (n_rules_to_apply == n_rules_applied) {
-        var proc = cockpit.spawn(["/usr/bin/sudo", '/sbin/e-smith/signal-event', 'firewall-adjust']);
-        proc.done(do_success_applied);
-        proc.stream(append_output);
-        proc.fail(do_fail);
-        result.empty();
-        n_rules_applied = 0;
-    }
-}*/
 
 function do_success() {
     result.css("color", "green");
