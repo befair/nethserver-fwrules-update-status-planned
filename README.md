@@ -6,17 +6,34 @@
         /sbin/e-smith/db /var/lib/nethserver/db/weekly-hours set $i timing 1 8:00 2 9:00 3 10:00 4 11:00 5 12:00;
     done
 
-1. Define some firewall objects as "iprange"
-2. Define some firewall rules that match those "iprange" as Src
-3. Place this directory in `/usr/share/cockpit` of your NethSecurity firewall
+2. Define some firewall objects as "iprange"
+3. Define some firewall rules that match those "iprange" as Src
+4. Place this directory in `/usr/share/cockpit` of your NethSecurity firewall
 
 and ... enjoy!
 
-## Enable a specific group to manage firewall rules
+## Apply rules
 
-1. Add users to a dedicated group (i.e: "docenti")
-2. Copy `99_nethserver_fwrules.sudoers` in `/etc/sudoers.d/99_nethserver_fwrules` (WARNING: remove ".sudoers" extension)
+Rules may not be applied synchronously, because there is a (inotify) trigger when the plan is updated.
+The trigger checks if it is the time of updating firewall rules, in that case, it sleeps 1 minute and then apply the new plan.
 
-Optional: if you want to enable all rules at midnight
+When the plan is updated, the script `update-plan.py` creates systemd timers corresponding to services
+([ending with '@'](https://serverfault.com/questions/896335/how-to-distinguish-between-systemd-unit-run-manually-or-by-timer))
+all created in`/etc/systemd/system/`:
 
-3. Copy `nethserver_fwrules.cron` in `/etc/cron.d/nethserver_fwrules`
+- `fwrules-enable`: 15 mins before starting hour
+- `fwrules-disable`: 15 mins after ending hour
+
+Services then are invoked with rules list separated by comma as aliases (i.e.: fwrules-enable@2,3,4 to enable rules 2 and 3 and 4)
+
+And they in turn calls the script `bin/apply-rules.py [enable|disable] [rules1,..,rulesN]`
+
+
+### Enable a specific group to manage firewall rules
+#
+#1. Add users to a dedicated group (i.e: "docenti")
+#2. Copy `99_nethserver_fwrules.sudoers` in `/etc/sudoers.d/99_nethserver_fwrules` (WARNING: remove ".sudoers" extension)
+#
+#Optional: if you want to enable all rules at midnight
+#
+#3. Copy `nethserver_fwrules.cron` in `/etc/cron.d/nethserver_fwrules`
