@@ -75,7 +75,7 @@ function generate_row(fwrule, open_hours) {
     html += '<td><label class="control-label" for="fwrule-n' + fwrule.name + '">' + fwrule.props.Description + '</label></td>';
     for (k in day_hours) {
         let el = day_hours[k];
-        let title = fwrule.props.Description + ' ' + DAYS[el.day] + ' ' + el.hour;
+        let title = fwrule.props.Description + ' ' + DAYS[el.day] + ' - ' + el.hour;
         html += '<td><input class="form-control" title="'+ title +'" type="checkbox" name="fwrule-status" data-fwrule="' + fwrule.name + '" data-day="'+ el.day + '" data-hour="' + el.hour +'" ';
         if (is_open(fwrule, el, open_hours)) {
             html += ' checked ></td>';
@@ -107,7 +107,7 @@ function get_open_hours(e_smith_json) {
 
 function load_tbody(data) {
     let open_hours = get_open_hours(JSON.parse(data));
-    
+
     let html = '';
     for (k in FWRULES) {
         let fwrule = FWRULES[k];
