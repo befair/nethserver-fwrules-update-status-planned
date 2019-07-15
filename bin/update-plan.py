@@ -71,18 +71,19 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_enable
     So we can disable a rule many times, and keep it disabled.
     """
 
-    dow = DOW[dow_int]
+    dow = DOW[dow_int - 1]
 
     # Set starting hours 15 minutes before hour starts
     hour_start = dt_hour - timedelta(minutes=MINUTES_THRESHOLD)
     hour_start_str= hour_start.time().strftime("%H:%M")
 
     # Create timers
-    path_systemd = PATH_BASENAME_SYSTEMD.format(kind='enable') + "-{dow}-{hour}.timer".format(dow=dow,hour=hour_start.strftime("%H-%M"))
-    with open(path_systemd, "w") as f:
-        f.write(TEMPLATE_SYSTEMD_TIMER.format(
-            kind='enable', rules=",".join(rules_to_enable),
-            dow=dow, time=hour_start_str))
+    if rules_to_enable:
+        path_systemd = PATH_BASENAME_SYSTEMD.format(kind='enable') + "-{dow}-{hour}.timer".format(dow=dow,hour=hour_start.strftime("%H-%M"))
+        with open(path_systemd, "w") as f:
+            f.write(TEMPLATE_SYSTEMD_TIMER.format(
+                kind='enable', rules=",".join(rules_to_enable),
+                dow=dow, time=hour_start_str))
 
     # For each rule previously enabled
     rules_to_disable = set(all_fwrules) - set(rules_to_enable)
@@ -95,7 +96,7 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_enable
         path_systemd = PATH_BASENAME_SYSTEMD.format(kind='disable') + "-{dow}-{hour}.timer".format(dow=dow,hour=hour_end.strftime("%H-%M"))
         with open(path_systemd, "w") as f:
             f.write(TEMPLATE_SYSTEMD_TIMER.format(
-                kind='disable', rules=",".join(rules_to_enable),
+                kind='disable', rules=",".join(rules_to_disable),
                 dow=dow, time=hour_end_str))
 
 
@@ -117,10 +118,9 @@ def fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules):
             # If fwrules to enable are present => create "enable rule"
             # While keeping track of enabled rules
             # If fwrules to enable are not present => create "disable rule"
-            rules_already_enabled=[]
             for dt_hour in dt_hours:
                 fwplan_create_timers_for_hour(
-                        dow_int, dt_hour, all_fwrules, day_fwrules_to_enable.get(dt_hour))
+                        dow_int, dt_hour, all_fwrules, day_fwrules_to_enable.get(dt_hour, []))
 
 
 def read_fwplan(dow_int_needed=None):
@@ -149,8 +149,8 @@ def read_fwplan(dow_int_needed=None):
             continue
 
         # Parse hours
-        hours = [datetime.strptime(x, "%H:%M") for x in day_hours["props"].values()]
-        hours.sort()
+        dt_hours = [datetime.strptime(x, "%H:%M") for x in day_hours["props"].values()]
+        dt_hours.sort()
 
         fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules)
 
@@ -186,7 +186,7 @@ def _main():
                         if fname.startswith(fname_start) and fname.endswith(".timer"):
                             dow_and_time = fname[len(fname_start):-len(".timer")]
                             dow, hour, minute = dow_and_time.split("-")
-                            dow_int = DOW.index(dow)
+                            dow_int = DOW.index(dow) + 1
                             if dow_int == dow_int_now:
                                 # If the timer is for the current day
                                 # Check if timedelta from now is <= 2 minutes
