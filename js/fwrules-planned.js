@@ -1,7 +1,7 @@
 var result = $("#result");
 var e_smith_fname_hours = '/var/lib/nethserver/db/weekly-hours';
 var e_smith_fname_plan = '/var/lib/nethserver/db/fwrules-plan';
-var e_smith_fname = '/var/lib/nethserver/db/fwrules.carducci-galilei';
+var e_smith_fname = '/var/lib/nethserver/db/fwrules';
 
 var FWRULES = {};
 
@@ -75,7 +75,7 @@ function generate_row(fwrule, open_hours) {
     html += '<td><label class="control-label" for="fwrule-n' + fwrule.name + '">' + fwrule.props.Description + '</label></td>';
     for (k in day_hours) {
         let el = day_hours[k];
-        let title = fwrule.props.Description + ' ' + DAYS[el.day] + ' - ' + el.hour;
+        let title = fwrule.props.Description + ' - ' + DAYS[el.day] + ' ' + el.hour;
         html += '<td><input class="form-control" title="'+ title +'" type="checkbox" name="fwrule-status" data-fwrule="' + fwrule.name + '" data-day="'+ el.day + '" data-hour="' + el.hour +'" ';
         if (is_open(fwrule, el, open_hours)) {
             html += ' checked ></td>';
