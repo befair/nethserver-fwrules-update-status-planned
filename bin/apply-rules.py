@@ -10,13 +10,13 @@ PATH_E_SMITH_BIN = '/sbin/e-smith/'
 
 if __name__ == "__main__":
 
-    # par 1: enable/disable
+    # par 1: enabled/disabled
     # par 2: rule1,rule2,...,ruleN
     try:
         status = sys.argv[1]
         fwrules = sys.argv[2].split(",")
     except IndexError:
-        print("Usage: {} <enable|disable> rules1[,rules2,...,rulesN]".format(sys.argv[0]))
+        print("Usage: {} <enabled|disabled> rules1[,rules2,...,rulesN]".format(sys.argv[0]))
         sys.exit(100)
 
 
