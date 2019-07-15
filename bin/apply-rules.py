@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Enable/Disable NethServer firewall rules
 """
