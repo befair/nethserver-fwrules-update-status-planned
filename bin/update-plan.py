@@ -22,7 +22,7 @@ PATH_FWRULES = '/var/lib/nethserver/db/fwrules'
 PATH_BASENAME_SYSTEMD = '/etc/systemd/system/fwrules-{kind}'
 DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 MINUTES_THRESHOLD = 15
-RULESRC_STARTSWITH = "iprange:lab_"
+RULESRC_STARTSWITH = "iprange;lab_"
 
 TEMPLATE_SYSTEMD_TIMER="""
 [Unit]
@@ -112,7 +112,7 @@ def fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules):
             # parse rules dict as with { datetime_hour: rules_list, ... }
             day_fwrules_to_enable = {
                     datetime.strptime(x, "%H:%M"): y.split(",")
-                    for x, y in fwrule_plan["props"].items() }
+                    for x, y in fwrule_plan.get("props", {}).items() }
 
             # For each day hour of the day
             # If fwrules to enable are present => create "enable rule"
