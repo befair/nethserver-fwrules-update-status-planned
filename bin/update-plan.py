@@ -11,6 +11,7 @@ import csv
 from datetime import datetime, timedelta, time
 import subprocess
 import os
+import json
 
 # --- Configuration ---
 # TODO: retrieve from envvars
