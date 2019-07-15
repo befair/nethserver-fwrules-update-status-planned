@@ -49,7 +49,7 @@ Description=Firewall {kind} rules %i
 
 [Service]
 Type=oneshot
-ExecStart=/usr/share/cockpit/nethserver-fwrules-update-status-planned/bin/apply-rules.py {kind} %i
+ExecStart=/usr/share/cockpit/nethserver-fwrules-update-status-planned/bin/apply-rules.py {kind}d %i
 
 [Install]
 WantedBy = multi-user.target
