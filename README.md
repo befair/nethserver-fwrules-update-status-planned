@@ -28,6 +28,11 @@ Services then are invoked with rules list separated by comma as aliases (i.e.: f
 
 And they in turn calls the script `bin/apply-rules.py [enable|disable] [rules1,..,rulesN]`
 
+## Requirements
+
+`yum install python-pip`
+`pip install python-inotify`
+
 
 ### Enable a specific group to manage firewall rules
 #

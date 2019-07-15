@@ -13,9 +13,11 @@ import subprocess
 import os
 
 # --- Configuration ---
+# TODO: retrieve from envvars
 
-PATH_WEEKLY_HOURS = '/home/fero/src/befair/nethserver-fwrules-update-status-planned/doc/weekly-hours-output'
-PATH_FWRULES_PLAN = '/home/fero/src/befair/nethserver-fwrules-update-status-planned/doc/fwrules-plan.json'
+PATH_WEEKLY_HOURS = '/var/lib/nethserver/db/weekly-hours'
+PATH_FWRULES_PLAN = '/var/lib/nethserver/db/fwrules-plan'
+PATH_FWRULES = '/var/lib/nethserver/db/fwrules'
 PATH_BASENAME_SYSTEMD = '/etc/systemd/system/fwrules-{kind}'
 DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 MINUTES_THRESHOLD = 15
@@ -51,7 +53,7 @@ ExecStart=/usr/share/cockpit/nethserver-fwrules-update-status-planned/bin/apply-
 
 [Install]
 WantedBy = multi-user.target
-""".format(kind=kind)
+""".format(kind=kind))
 
 # TODO -- setup default weekly hours?
 
@@ -132,9 +134,12 @@ def read_fwplan(dow_int_needed=None):
             6. create timer to close rules that were closed in the previous hour
     """
 
-    weekly_hours = json.load("../doc/weekly-hours.json")
-    fwrules_plan = json.load("../doc/fwrules-plan.json")
-    fwrules = json.load("../doc/fwrules.json")
+    weekly_hours_json = subprocess.check_output(["/sbin/e-smith/db", PATH_WEEKLY_HOURS, "printjson"])
+    weekly_hours = json.loads(weekly_hours_json)
+    fwrules_plan_json = subprocess.check_output(["/sbin/e-smith/db", PATH_FWRULES_PLAN, "printjson"])
+    fwrules_plan = json.loads(fwrules_plan_json)
+    fwrules_json = subprocess.check_output(["/sbin/e-smith/db", PATH_FWRULES, "printjson"])
+    fwrules = json.loads(fwrules_json)
     all_fwrules = [ x["name"] for x in fwrules if x["props"].get("Src","").startswith(RULESRC_STARTSWITH) ]
 
     for day_hours in weekly_hours:
@@ -188,7 +193,7 @@ def _main():
                                 # if not => proceed in deleting timers
                                 dt_timer = datetime(dt_now.year, dt_now.month, dt_now.day, int(hour), int(minute))
                                 if abs(dt_now - dt_timer) < timedelta(minutes=2):
-                                    delay(5000)
+                                    delay(360)
                                     waited = True
                                     break
                     if waited:
@@ -200,7 +205,7 @@ def _main():
             subprocess.check_output(['/usr/bin/rm', '-rf', PATH_BASENAME_SYSTEMD.format(kind='*') + ".timer"])
 
             # Step 3. read new plan and create new timers to apply rules
-            read_weekly_hours()
+            read_fwplan()
 
 
 
