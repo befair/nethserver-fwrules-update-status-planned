@@ -178,32 +178,32 @@ def _main():
             dt_now = datetime.now()
             dow_int_now = int(dt_now.strftime("%w"))
             waited = False
-            for rootDir, subdirs, filenames in os.walk(dirname):
+            filenames = os.listdir(dirname)
+            for kind in ("enable", "disable"):
+                fname_start = os.path.basename(PATH_BASENAME_SYSTEMD).format(kind=kind)
+                timer_names = [ fname for fname in filenames if fname.startswith(fname_start) and fname.endswith(".timer")]
                 # 1. Parse timer name
-                for fname in filenames:
-                    for kind in ("enable", "disable"):
-                        fname_start = PATH_BASENAME_SYSTEMD.format(kind=kind)
-                        if fname.startswith(fname_start) and fname.endswith(".timer"):
-                            dow_and_time = fname[len(fname_start):-len(".timer")]
-                            dow, hour, minute = dow_and_time.split("-")
-                            dow_int = DOW.index(dow) + 1
-                            if dow_int == dow_int_now:
-                                # If the timer is for the current day
-                                # Check if timedelta from now is <= 2 minutes
-                                # if it is => delay for 5 minutes and exit from all loops
-                                # if not => proceed in deleting timers
-                                dt_timer = datetime(dt_now.year, dt_now.month, dt_now.day, int(hour), int(minute))
-                                if abs(dt_now - dt_timer) < timedelta(minutes=2):
-                                    delay(360)
-                                    waited = True
-                                    break
-                    if waited:
-                        break
+                for fname in timer_names:
+                    dow_and_time = fname[len(fname_start) + 1:-len(".timer")]
+                    dow, hour, minute = dow_and_time.split("-")
+                    dow_int = DOW.index(dow) + 1
+                    if dow_int == dow_int_now:
+                        # If the timer is for the current day
+                        # Check if timedelta from now is <= 2 minutes
+                        # if it is => delay for 5 minutes and exit from all loops
+                        # if not => proceed in deleting timers
+                        dt_timer = datetime(dt_now.year, dt_now.month, dt_now.day, int(hour), int(minute))
+                        if abs(dt_now - dt_timer) < timedelta(minutes=2):
+                            delay(360)
+                            waited = True
+                            break
                 if waited:
                     break
 
-            # Step 2. remove all previously generated timers (use command line!)
-            subprocess.check_output(['/usr/bin/rm', '-rf', PATH_BASENAME_SYSTEMD.format(kind='*') + ".timer"])
+            # Step 2. remove all previously generated timers
+            for fname in timer_names:
+                abs_fname = os.path.join(os.path.dirname(PATH_BASENAME_SYSTEMD), fname)
+                os.remove(abs_fname)
 
             # Step 3. read new plan and create new timers to apply rules
             read_fwplan()
