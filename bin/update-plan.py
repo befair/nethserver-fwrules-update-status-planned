@@ -8,6 +8,8 @@ Include systemd units initialization if not found.
 import inotify.adapters, inotify.constants
 import csv
 from datetime import datetime, timedelta, time
+import subprocess
+import os
 
 # --- Configuration ---
 
@@ -16,6 +18,7 @@ PATH_FWRULES_PLAN = '/home/fero/src/befair/nethserver-fwrules-update-status-plan
 PATH_BASENAME_SYSTEMD = '/etc/systemd/system/fwrules-{kind}'
 DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 MINUTES_THRESHOLD = 15
+RULESRC_STARTSWITH = "iprange:lab_"
 
 TEMPLATE_SYSTEMD_TIMER="""
 [Unit]
@@ -53,10 +56,15 @@ WantedBy = multi-user.target
 
 
 
-def fwplan_create_timers_for_hour(dow_int, dt_hour, rules_to_enable=[], rules_enabled=[]):
+def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_enable=[]):
     """
-    Create systemd timers and service by hour.
+    Create systemd timers for rules involved in a specific hour.
 
+    * create timer to enable all rules_to_enable at the specific (dow, dt_hour-15mins);
+    * create timer to disable all other rules at the specific (dow, dt_hour+15mins)
+
+    NOTE: the operation of enabling/disabling rule is idempotent.
+    So we can disable a rule many times, and keep it disabled.
     """
 
     dow = DOW[dow_int]
@@ -65,35 +73,29 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, rules_to_enable=[], rules_en
     hour_start = dt_hour - timedelta(minutes=MINUTES_THRESHOLD)
     hour_start_str= hour_start.time().strftime("%H:%M")
 
-    # TODO WARNING: apply a delay if there are timers scheduled now!!
-    # TODO WARNING: delete previous timers
-    # TODO WARNING: decide what to do with active rules!
     # Create timers
-    path_systemd = PATH_BASENAME_SYSTEMD.format(kind='enable') + ".timer"
+    path_systemd = PATH_BASENAME_SYSTEMD.format(kind='enable') + "-{dow}-{hour}.timer".format(dow=dow,hour=hour_start.strftime("%H-%M"))
     with open(path_systemd, "w") as f:
         f.write(TEMPLATE_SYSTEMD_TIMER.format(
             kind='enable', rules=",".join(rules_to_enable),
             dow=dow, time=hour_start_str))
 
     # For each rule previously enabled
-    rules_to_disable = set(rules_enabled) - set(rules_to_enable)
+    rules_to_disable = set(all_fwrules) - set(rules_to_enable)
 
     if rules_to_disable:
         # Set ending hours 15 minutes after hour ends
         hour_end = dt_hour + timedelta(minutes=MINUTES_THRESHOLD)
         hour_end_str = hour_end.time().strftime("%H:%M")
 
-        path_systemd = PATH_BASENAME_SYSTEMD.format(kind='disable') + ".timer"
+        path_systemd = PATH_BASENAME_SYSTEMD.format(kind='disable') + "-{dow}-{hour}.timer".format(dow=dow,hour=hour_end.strftime("%H-%M"))
         with open(path_systemd, "w") as f:
             f.write(TEMPLATE_SYSTEMD_TIMER.format(
                 kind='disable', rules=",".join(rules_to_enable),
                 dow=dow, time=hour_end_str))
 
-    # Update (in-place) rules previously enabled
-    rules_enabled = rules_to_enable
 
-
-def fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan):
+def fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules):
     """
     For a specific day and specific hours,
     create timers and services to enable/disable firewall rules
@@ -114,13 +116,14 @@ def fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan):
             rules_already_enabled=[]
             for dt_hour in dt_hours:
                 fwplan_create_timers_for_hour(
-                        dow_int, dt_hour, day_fwrules_to_enable.get(dt_hour), rules_enabled=rules_enabled)
+                        dow_int, dt_hour, all_fwrules, day_fwrules_to_enable.get(dt_hour))
 
 
 def read_fwplan(dow_int_needed=None):
     """
     1. db weekly-hours printjson
     1. db fwrules-plan printjson
+    1. db fwrules printjson
     2. for each day
         3. sort hours with strptime
         4. for each hour:
@@ -130,6 +133,9 @@ def read_fwplan(dow_int_needed=None):
 
     weekly_hours = json.load("../doc/weekly-hours.json")
     fwrules_plan = json.load("../doc/fwrules-plan.json")
+    fwrules = json.load("../doc/fwrules.json")
+    all_fwrules = [ x["name"] for x in fwrules if x["props"].get("Src","").startswith(RULESRC_STARTSWITH) ]
+
     for day_hours in weekly_hours:
         dow_int = int(day_hours["name"])  # TODO: name it with real dow? i.e: Mon, Tue, ...
         if dow_int_needed and dow_int != dow_int_needed:
@@ -139,7 +145,7 @@ def read_fwplan(dow_int_needed=None):
         hours = [datetime.strptime(x, "%H:%M") for x in day_hours["props"].values()]
         hours.sort()
 
-        fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan)
+        fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules)
 
 
 
@@ -156,7 +162,43 @@ def _main():
 
         # Be careful: does not work in vim that create a new file and overwrite
         if type_names[0] == 'IN_CLOSE_WRITE':
-            # If written => read file and regenerate timers
+
+            # If written =>
+            # - get a list of previously generated timers and apply a delay if there are timers scheduled in 2 minutes!!
+            # - remove previously generated timers
+            # - read file and regenerate timers
+            dirname = os.path.dirname(PATH_BASENAME_SYSTEMD)
+            dt_now = datetime.now()
+            dow_int_now = int(dt_now.strftime("%w"))
+            waited = False
+            for rootDir, subdirs, filenames in os.walk(dirname):
+                # 1. Parse timer name
+                for fname in filenames:
+                    for kind in ("enable", "disable"):
+                        fname_start = PATH_BASENAME_SYSTEMD.format(kind=kind)
+                        if fname.startswith(fname_start) and fname.endswith(".timer"):
+                            dow_and_time = fname[len(fname_start):-len(".timer")]
+                            dow, hour, minute = dow_and_time.split("-")
+                            dow_int = DOW.index(dow)
+                            if dow_int == dow_int_now:
+                                # If the timer is for the current day
+                                # Check if timedelta from now is <= 2 minutes
+                                # if it is => delay for 5 minutes and exit from all loops
+                                # if not => proceed in deleting timers
+                                dt_timer = datetime(dt_now.year, dt_now.month, dt_now.day, int(hour), int(minute))
+                                if abs(dt_now - dt_timer) < timedelta(minutes=2):
+                                    delay(5000)
+                                    waited = True
+                                    break
+                    if waited:
+                        break
+                if waited:
+                    break
+
+            # Step 2. remove all previously generated timers (use command line!)
+            subprocess.check_output(['/usr/bin/rm', '-rf', PATH_BASENAME_SYSTEMD.format(kind='*') + ".timer"])
+
+            # Step 3. read new plan and create new timers to apply rules
             read_weekly_hours()
 
 
