@@ -14,9 +14,9 @@ if __name__ == "__main__":
     # par 2: rule1,rule2,...,ruleN
     try:
         status = sys.argv[1]
-        fwrules = sys.argv[2].split(",")
+        fwrules = sys.argv[2].split(":")
     except IndexError:
-        print("Usage: {} <enabled|disabled> rules1[,rules2,...,rulesN]".format(sys.argv[0]))
+        print("Usage: {} <enabled|disabled> rules1[:rules2:...:rulesN]".format(sys.argv[0]))
         sys.exit(100)
 
 

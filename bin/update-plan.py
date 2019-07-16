@@ -83,7 +83,7 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_disabl
         path_systemd = PATH_BASENAME_SYSTEMD.format(kind='disable') + "-{dow}-{hour}.timer".format(dow=dow,hour=hour_start.strftime("%H-%M"))
         with open(path_systemd, "w") as f:
             f.write(TEMPLATE_SYSTEMD_TIMER.format(
-                kind='disable', rules=",".join(rules_to_disable),
+                kind='disable', rules=":".join(rules_to_disable),
                 dow=dow, time=hour_start_str))
 
         fname_timers_created.append(path_systemd)
@@ -99,7 +99,7 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_disabl
         path_systemd = PATH_BASENAME_SYSTEMD.format(kind='enable') + "-{dow}-{hour}.timer".format(dow=dow,hour=hour_end.strftime("%H-%M"))
         with open(path_systemd, "w") as f:
             f.write(TEMPLATE_SYSTEMD_TIMER.format(
-                kind='enable', rules=",".join(rules_to_enable),
+                kind='enable', rules=":".join(rules_to_enable),
                 dow=dow, time=hour_end_str))
 
         fname_timers_created.append(path_systemd)
@@ -167,8 +167,8 @@ def read_fwplan(dow_int_needed=None):
         fname_timers_created += fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules)
 
     # Enable and start all timers created
-    subprocess.check_output(["/usr/bin/systemctl", "enable"] + [os.path.basename(x) for x in fname_timers_created])
-    subprocess.check_output(["/usr/bin/systemctl", "start"] + [os.path.basename(x) for x in fname_timers_created])
+    subprocess.check_call(["/usr/bin/systemctl", "enable"] + [os.path.basename(x) for x in fname_timers_created])
+    subprocess.check_call(["/usr/bin/systemctl", "start"] + [os.path.basename(x) for x in fname_timers_created])
 
 
 def _main():
