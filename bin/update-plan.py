@@ -152,7 +152,7 @@ def read_fwplan(dow_int_needed=None):
     fwrules_plan = json.loads(fwrules_plan_json)
     fwrules_json = subprocess.check_output(["/sbin/e-smith/db", PATH_FWRULES, "printjson"])
     fwrules = json.loads(fwrules_json)
-    all_fwrules = [ x["name"] for x in fwrules if x["props"].get("Src","").startswith(RULESRC_STARTSWITH) ]
+    all_fwrules = [ x["name"] for x in fwrules if x.get("props", {}).get("Src","").startswith(RULESRC_STARTSWITH) ]
 
     fname_timers_created = []
     for day_hours in weekly_hours:
