@@ -218,11 +218,12 @@ def _main():
             # Step 2.
             # - Stop and disable all timers created
             # - Remove all previously generated timers
-            subprocess.check_output(["/usr/bin/systemctl", "stop"] + timer_names)
-            subprocess.check_output(["/usr/bin/systemctl", "disable"] + timer_names)
-            for fname in timer_names:
-                abs_fname = os.path.join(os.path.dirname(PATH_BASENAME_SYSTEMD), fname)
-                os.remove(abs_fname)
+            if timer_names:
+                subprocess.check_output(["/usr/bin/systemctl", "stop"] + timer_names)
+                subprocess.check_output(["/usr/bin/systemctl", "disable"] + timer_names)
+                for fname in timer_names:
+                    abs_fname = os.path.join(os.path.dirname(PATH_BASENAME_SYSTEMD), fname)
+                    os.remove(abs_fname)
 
             # Step 3. read new plan and create new timers to apply rules
             read_fwplan()
