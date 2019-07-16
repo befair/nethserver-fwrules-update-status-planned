@@ -71,6 +71,7 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_disabl
     So we can enable a rule many times, and keep it enabled.
     """
 
+    fname_timers_created = []
     dow = DOW[dow_int - 1]
 
     # Set starting hours 15 minutes before hour starts
@@ -84,6 +85,8 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_disabl
             f.write(TEMPLATE_SYSTEMD_TIMER.format(
                 kind='disable', rules=",".join(rules_to_disable),
                 dow=dow, time=hour_start_str))
+
+        fname_timers_created.append(path_systemd)
 
     # For each rule previously disabled
     rules_to_enable = set(all_fwrules) - set(rules_to_disable)
@@ -99,12 +102,18 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_disabl
                 kind='enable', rules=",".join(rules_to_enable),
                 dow=dow, time=hour_end_str))
 
+        fname_timers_created.append(path_systemd)
+
+    return fname_timers_created
+
 
 def fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules):
     """
     For a specific day and specific hours,
     create timers and services to disable/enable firewall rules
     """
+
+    fname_timers_created = []
 
     # Find fwrules for the day:
     for fwrule_plan in fwrules_plan:
@@ -119,8 +128,10 @@ def fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules):
             # While keeping track of disabled rules
             # If fwrules to disable are not present => create "enable rule"
             for dt_hour in dt_hours:
-                fwplan_create_timers_for_hour(
+                fname_timers_created += fwplan_create_timers_for_hour(
                         dow_int, dt_hour, all_fwrules, day_fwrules_to_disable.get(dt_hour, []))
+
+    return fname_timers_created
 
 
 def read_fwplan(dow_int_needed=None):
@@ -143,6 +154,7 @@ def read_fwplan(dow_int_needed=None):
     fwrules = json.loads(fwrules_json)
     all_fwrules = [ x["name"] for x in fwrules if x["props"].get("Src","").startswith(RULESRC_STARTSWITH) ]
 
+    fname_timers_created = []
     for day_hours in weekly_hours:
         dow_int = int(day_hours["name"])  # TODO: name it with real dow? i.e: Mon, Tue, ...
         if dow_int_needed and dow_int != dow_int_needed:
@@ -152,8 +164,11 @@ def read_fwplan(dow_int_needed=None):
         dt_hours = [datetime.strptime(x, "%H:%M") for x in day_hours["props"].values()]
         dt_hours.sort()
 
-        fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules)
+        fname_timers_created += fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules)
 
+    # Enable and start all timers created
+    subprocess.check_output(["/usr/bin/systemctl", "enable"] + [os.path.basename(x) for x in fname_timers_created])
+    subprocess.check_output(["/usr/bin/systemctl", "start"] + [os.path.basename(x) for x in fname_timers_created])
 
 
 def _main():
@@ -200,7 +215,11 @@ def _main():
                 if waited:
                     break
 
-            # Step 2. remove all previously generated timers
+            # Step 2.
+            # - Stop and disable all timers created
+            # - Remove all previously generated timers
+            subprocess.check_output(["/usr/bin/systemctl", "stop"] + timer_names)
+            subprocess.check_output(["/usr/bin/systemctl", "disable"] + timer_names)
             for fname in timer_names:
                 abs_fname = os.path.join(os.path.dirname(PATH_BASENAME_SYSTEMD), fname)
                 os.remove(abs_fname)
