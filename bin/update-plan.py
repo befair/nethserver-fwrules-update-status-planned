@@ -40,7 +40,7 @@ WantedBy=timers.target
 # --- Setup ---
 # Create systemd services
 
-for kind in ('enable', 'disable'):
+for kind in ('disable', 'enable'):
     path_systemd = PATH_BASENAME_SYSTEMD.format(kind=kind) + "@.service"
     if not os.path.exists(path_systemd):
         with open(path_systemd, "w") as f:
@@ -60,15 +60,15 @@ WantedBy = multi-user.target
 
 
 
-def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_enable=[]):
+def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_disable=[]):
     """
     Create systemd timers for rules involved in a specific hour.
 
-    * create timer to enable all rules_to_enable at the specific (dow, dt_hour-15mins);
-    * create timer to disable all other rules at the specific (dow, dt_hour+15mins)
+    * create timer to disable all rules_to_disable at the specific (dow, dt_hour-15mins);
+    * create timer to enable all other rules at the specific (dow, dt_hour+15mins)
 
     NOTE: the operation of enabling/disabling rule is idempotent.
-    So we can disable a rule many times, and keep it disabled.
+    So we can enable a rule many times, and keep it enabled.
     """
 
     dow = DOW[dow_int - 1]
@@ -78,49 +78,49 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_enable
     hour_start_str= hour_start.time().strftime("%H:%M")
 
     # Create timers
-    if rules_to_enable:
-        path_systemd = PATH_BASENAME_SYSTEMD.format(kind='enable') + "-{dow}-{hour}.timer".format(dow=dow,hour=hour_start.strftime("%H-%M"))
+    if rules_to_disable:
+        path_systemd = PATH_BASENAME_SYSTEMD.format(kind='disable') + "-{dow}-{hour}.timer".format(dow=dow,hour=hour_start.strftime("%H-%M"))
         with open(path_systemd, "w") as f:
             f.write(TEMPLATE_SYSTEMD_TIMER.format(
-                kind='enable', rules=",".join(rules_to_enable),
+                kind='disable', rules=",".join(rules_to_disable),
                 dow=dow, time=hour_start_str))
 
-    # For each rule previously enabled
-    rules_to_disable = set(all_fwrules) - set(rules_to_enable)
+    # For each rule previously disabled
+    rules_to_enable = set(all_fwrules) - set(rules_to_disable)
 
-    if rules_to_disable:
+    if rules_to_enable:
         # Set ending hours 15 minutes after hour ends
         hour_end = dt_hour + timedelta(minutes=MINUTES_THRESHOLD)
         hour_end_str = hour_end.time().strftime("%H:%M")
 
-        path_systemd = PATH_BASENAME_SYSTEMD.format(kind='disable') + "-{dow}-{hour}.timer".format(dow=dow,hour=hour_end.strftime("%H-%M"))
+        path_systemd = PATH_BASENAME_SYSTEMD.format(kind='enable') + "-{dow}-{hour}.timer".format(dow=dow,hour=hour_end.strftime("%H-%M"))
         with open(path_systemd, "w") as f:
             f.write(TEMPLATE_SYSTEMD_TIMER.format(
-                kind='disable', rules=",".join(rules_to_disable),
+                kind='enable', rules=",".join(rules_to_enable),
                 dow=dow, time=hour_end_str))
 
 
 def fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules):
     """
     For a specific day and specific hours,
-    create timers and services to enable/disable firewall rules
+    create timers and services to disable/enable firewall rules
     """
 
     # Find fwrules for the day:
     for fwrule_plan in fwrules_plan:
         if dow_int == int(fwrule_plan["name"]):
             # parse rules dict as with { datetime_hour: rules_list, ... }
-            day_fwrules_to_enable = {
+            day_fwrules_to_disable = {
                     datetime.strptime(x, "%H:%M"): y.split(",")
                     for x, y in fwrule_plan.get("props", {}).items() }
 
             # For each day hour of the day
-            # If fwrules to enable are present => create "enable rule"
-            # While keeping track of enabled rules
-            # If fwrules to enable are not present => create "disable rule"
+            # If fwrules to disable are present => create "disable rule"
+            # While keeping track of disabled rules
+            # If fwrules to disable are not present => create "enable rule"
             for dt_hour in dt_hours:
                 fwplan_create_timers_for_hour(
-                        dow_int, dt_hour, all_fwrules, day_fwrules_to_enable.get(dt_hour, []))
+                        dow_int, dt_hour, all_fwrules, day_fwrules_to_disable.get(dt_hour, []))
 
 
 def read_fwplan(dow_int_needed=None):
@@ -179,7 +179,7 @@ def _main():
             dow_int_now = int(dt_now.strftime("%w"))
             waited = False
             filenames = os.listdir(dirname)
-            for kind in ("enable", "disable"):
+            for kind in ("disable", "enable"):
                 fname_start = os.path.basename(PATH_BASENAME_SYSTEMD).format(kind=kind)
                 timer_names = [ fname for fname in filenames if fname.startswith(fname_start) and fname.endswith(".timer")]
                 # 1. Parse timer name
