@@ -167,8 +167,9 @@ def read_fwplan(dow_int_needed=None):
         fname_timers_created += fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules)
 
     # Enable and start all timers created
-    subprocess.check_call(["/usr/bin/systemctl", "enable"] + [os.path.basename(x) for x in fname_timers_created])
-    subprocess.check_call(["/usr/bin/systemctl", "start"] + [os.path.basename(x) for x in fname_timers_created])
+    if fname_timers_created:
+        subprocess.check_call(["/usr/bin/systemctl", "enable"] + [os.path.basename(x) for x in fname_timers_created])
+        subprocess.check_call(["/usr/bin/systemctl", "start"] + [os.path.basename(x) for x in fname_timers_created])
 
 
 def _main():

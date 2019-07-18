@@ -1,5 +1,5 @@
 
-Cmnd_Alias FWRULESADMIN = /sbin/e-smith/db /var/lib/nethserver/db/fwrules printjson, /sbin/e-smith/db /var/lib/nethserver/db/fwrules setprop *status*, /sbin/e-smith/signal-event firewall-adjust
+Cmnd_Alias FWRULESADMIN = /sbin/e-smith/db /var/lib/nethserver/db/fwrules printjson, /sbin/e-smith/db /var/lib/nethserver/db/weekly-hours printjson, /sbin/e-smith/db /var/lib/nethserver/db/fwrules-plan printjson, /sbin/e-smith/signal-event firewall-adjust, /sbin/e-smith/db /var/lib/nethserver/db/fwrules-plan set *
 
 %docenti ALL=NOPASSWD: FWRULESADMIN
 
