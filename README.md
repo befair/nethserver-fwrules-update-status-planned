@@ -1,12 +1,14 @@
 # NethServer Firewall Iprange Rules Updater
 
-1. Create hours ranges for your week as:
+1. Create hours ranges for your week in e-smith including "closing hours" as:
 
-    for i in LUN MAR MER GIO VEN SAB DOM; do
-        /sbin/e-smith/db /var/lib/nethserver/db/weekly-hours set $i timing 1 8:00 2 9:00 3 10:00 4 11:00 5 12:00;
+    ```
+    for day_of_week in 1 2 3 4 5 6; do
+        /sbin/e-smith/db /var/lib/nethserver/db/weekly-hours set $day_of_week timing 1 8:00 2 9:00 3 10:00 4 11:00 5 12:00 close1 13:30 6 14:00 7 15:00 8 16:00 9 17:00 10 18:00 close2 19:00;
     done
+    ```
 
-2. Define some firewall objects as "iprange"
+2. Define some firewall objects as "iprange" starting with `lab_`
 3. Define some firewall rules that match those "iprange" as Src
 4. Place this directory in `/usr/share/cockpit` of your NethSecurity firewall
 

@@ -170,10 +170,17 @@ def read_fwplan(dow_int_needed=None):
             continue
 
         # Parse hours
-        dt_hours = [datetime.strptime(x, "%H:%M") for x in day_hours["props"].values()]
+        dt_hours = [datetime.strptime(x, "%H:%M") for x[1] in day_hours["props"].items() if not x[0].startswith("close")]
         dt_hours.sort()
 
         fname_timers_created += fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules)
+
+        # Close hours
+        # Create "enable" rules timers for all closing hours
+        close_hours = [datetime.strptime(x[1], "%H:%M") for x in day_hours["props"].items() if x[0].startswith("close")]
+
+        for close_hour in close_hours:
+            fname_timers_created += fwplan_create_timers_for_hour(dow_int, close_hour, all_fwrules)
 
     # Enable and start all timers created
     if fname_timers_created and not DEBUG:
