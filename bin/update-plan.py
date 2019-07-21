@@ -14,14 +14,16 @@ import os
 import json
 
 # --- Configuration ---
-# TODO: backend driver class to manage input from e-smith or from json files for mockups
+DEBUG = os.environ.get('APP_DEBUG', False)
 
+# TODO: backend driver class to manage input from e-smith or from json files for mockups
 PATH_WEEKLY_HOURS = '/var/lib/nethserver/db/weekly-hours'
 PATH_FWRULES_PLAN = '/var/lib/nethserver/db/fwrules-plan'
+PATH_FWRULES_PLAN = './doc/fwrules-plan'
 PATH_FWRULES = '/var/lib/nethserver/db/fwrules'
 PATH_BASENAME_SYSTEMD = '/etc/systemd/system/fwrules-{kind}'
 DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-MINUTES_THRESHOLD = os.environ.get('MINUTES_THRESHOLD', 5)
+MINUTES_THRESHOLD = os.environ.get('APP_MINUTES_THRESHOLD', 5)
 RULESRC_STARTSWITH = "iprange;lab_"
 
 TEMPLATE_SYSTEMD_TIMER="""
@@ -40,21 +42,22 @@ WantedBy=timers.target
 # --- Setup ---
 # Create systemd services
 
-for kind in ('disable', 'enable'):
-    path_systemd = PATH_BASENAME_SYSTEMD.format(kind=kind) + "@.service"
-    if not os.path.exists(path_systemd):
-        with open(path_systemd, "w") as f:
-            f.write("""
-[Unit]
-Description=Firewall {kind} rules %i
+if not DEBUG:
+    for kind in ('disable', 'enable'):
+        path_systemd = PATH_BASENAME_SYSTEMD.format(kind=kind) + "@.service"
+        if not os.path.exists(path_systemd):
+            with open(path_systemd, "w") as f:
+                f.write("""
+    [Unit]
+    Description=Firewall {kind} rules %i
 
-[Service]
-Type=oneshot
-ExecStart=/usr/share/cockpit/nethserver-fwrules-update-status-planned/bin/apply-rules.py {kind}d %i
+    [Service]
+    Type=oneshot
+    ExecStart=/usr/share/cockpit/nethserver-fwrules-update-status-planned/bin/apply-rules.py {kind}d %i
 
-[Install]
-WantedBy = multi-user.target
-""".format(kind=kind))
+    [Install]
+    WantedBy = multi-user.target
+    """.format(kind=kind))
 
 # TODO -- setup default weekly hours?
 
@@ -81,10 +84,13 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_disabl
     # Create timers
     if rules_to_disable:
         path_systemd = PATH_BASENAME_SYSTEMD.format(kind='disable') + "-{dow}-{hour}.timer".format(dow=dow,hour=hour_start.strftime("%H-%M"))
-        with open(path_systemd, "w") as f:
-            f.write(TEMPLATE_SYSTEMD_TIMER.format(
-                kind='disable', rules=":".join(rules_to_disable),
-                dow=dow, time=hour_start_str))
+        if DEBUG:
+            print("[DEBUG] Writing {}...".format(path_systemd))
+        else:
+            with open(path_systemd, "w") as f:
+                f.write(TEMPLATE_SYSTEMD_TIMER.format(
+                    kind='disable', rules=":".join(rules_to_disable),
+                    dow=dow, time=hour_start_str))
 
         fname_timers_created.append(path_systemd)
 
@@ -97,10 +103,13 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_disabl
         hour_end_str = hour_end.time().strftime("%H:%M")
 
         path_systemd = PATH_BASENAME_SYSTEMD.format(kind='enable') + "-{dow}-{hour}.timer".format(dow=dow,hour=hour_end.strftime("%H-%M"))
-        with open(path_systemd, "w") as f:
-            f.write(TEMPLATE_SYSTEMD_TIMER.format(
-                kind='enable', rules=":".join(rules_to_enable),
-                dow=dow, time=hour_end_str))
+        if DEBUG:
+            print("[DEBUG] Writing {}...".format(path_systemd))
+        else:
+            with open(path_systemd, "w") as f:
+                f.write(TEMPLATE_SYSTEMD_TIMER.format(
+                    kind='enable', rules=":".join(rules_to_enable),
+                    dow=dow, time=hour_end_str))
 
         fname_timers_created.append(path_systemd)
 
@@ -167,7 +176,7 @@ def read_fwplan(dow_int_needed=None):
         fname_timers_created += fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules)
 
     # Enable and start all timers created
-    if fname_timers_created:
+    if fname_timers_created and not DEBUG:
         subprocess.check_call(["/usr/bin/systemctl", "enable"] + [os.path.basename(x) for x in fname_timers_created])
         subprocess.check_call(["/usr/bin/systemctl", "start"] + [os.path.basename(x) for x in fname_timers_created])
 
@@ -219,7 +228,7 @@ def _main():
             # Step 2.
             # - Stop and disable all timers created
             # - Remove all previously generated timers
-            if timer_names:
+            if timer_names and not DEBUG:
                 subprocess.check_output(["/usr/bin/systemctl", "stop"] + timer_names)
                 subprocess.check_output(["/usr/bin/systemctl", "disable"] + timer_names)
                 for fname in timer_names:
