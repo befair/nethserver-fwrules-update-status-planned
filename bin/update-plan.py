@@ -17,10 +17,10 @@ import json
 DEBUG = os.environ.get('APP_DEBUG', False)
 
 # TODO: backend driver class to manage input from e-smith or from json files for mockups
-PATH_WEEKLY_HOURS = '/var/lib/nethserver/db/weekly-hours'
-PATH_FWRULES_PLAN = '/var/lib/nethserver/db/fwrules-plan'
-PATH_FWRULES_PLAN = './doc/fwrules-plan'
-PATH_FWRULES = '/var/lib/nethserver/db/fwrules'
+BASEDIR = os.environ.get('APP_BASEDIR', '/var/lib/nethserver/db/')
+PATH_WEEKLY_HOURS = os.path.join(BASEDIR, 'weekly-hours')
+PATH_FWRULES_PLAN = os.path.join(BASEDIR, 'fwrules-plan')
+PATH_FWRULES = os.path.join(BASEDIR, 'fwrules')
 PATH_BASENAME_SYSTEMD = '/etc/systemd/system/fwrules-{kind}'
 DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 MINUTES_THRESHOLD = os.environ.get('APP_MINUTES_THRESHOLD', 5)
