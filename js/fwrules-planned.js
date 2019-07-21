@@ -112,7 +112,7 @@ function load_tbody(data) {
     for (k in FWRULES) {
         let fwrule = FWRULES[k];
         if (fwrule.props && fwrule.props.Src) {
-            if (fwrule.props.Src.startsWith("iprange;")) {
+            if (fwrule.props.Src.startsWith("iprange;lab_")) {
                 n_rules_to_apply += 1;
                 html += generate_row(fwrule, open_hours);
             }
