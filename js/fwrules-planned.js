@@ -40,9 +40,11 @@ function load_thead(data) {
     for (k in obj) {
         let timing = obj[k];
         super_headers.push({ 'val': DAYS[timing.name], 'colspan': Object.keys(timing.props).length });
-        for (let c=1; c<=Object.keys(timing.props).length; c++) {
-            sub_headers.push({'val': c, 'colspan': 1});
-            day_hours.push({'day': timing.name, 'hour': timing.props[c]});
+        for (hour_n in timing.props) {
+            if (parseInt(hour_n)) {
+                sub_headers.push({'val': hour_n, 'colspan': 1});
+                day_hours.push({'day': timing.name, 'hour': timing.props[hour_n]});
+            }
         }
     }
     $('#fwrules-thead').prepend("<tr><th></th>" + sub_headers.map(generate_th_rows) + "</tr>");
