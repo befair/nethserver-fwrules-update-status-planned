@@ -170,7 +170,7 @@ def read_fwplan(dow_int_needed=None):
             continue
 
         # Parse hours
-        dt_hours = [datetime.strptime(x, "%H:%M") for x[1] in day_hours["props"].items() if not x[0].startswith("close")]
+        dt_hours = [datetime.strptime(x[1], "%H:%M") for x in day_hours["props"].items() if not x[0].startswith("close")]
         dt_hours.sort()
 
         fname_timers_created += fwplan_create_timers_for_day(dow_int, dt_hours, fwrules_plan, all_fwrules)
@@ -192,7 +192,7 @@ def _main():
     i = inotify.adapters.Inotify()
 
     # Watch for changes in weekly hours definition
-    i.add_watch(BASEDIR, mask=inotify.constants.IN_CLOSE_WRITE)
+    i.add_watch(BASEDIR, mask=inotify.constants.IN_CLOSE_WRITE | inotify.constants.IN_MOVED_TO)
 
     # Listen indefinely for events
     for event in i.event_gen(yield_nones=False):
@@ -202,7 +202,7 @@ def _main():
             print("PATH=[{}] FILENAME=[{}] EVENT_TYPES={}".format(path, filename, type_names))
 
         # Be careful: does not work in vim that create a new file and overwrite
-        if type_names[0] == 'IN_CLOSE_WRITE' and filename == PATH_FWRULES_PLAN:
+        if filename == os.path.basename(PATH_FWRULES_PLAN):
 
             # If written =>
             # - get a list of previously generated timers and apply a delay if there are timers scheduled in 2 minutes!!
