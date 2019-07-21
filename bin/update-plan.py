@@ -14,14 +14,14 @@ import os
 import json
 
 # --- Configuration ---
-# TODO: retrieve from envvars
+# TODO: backend driver class to manage input from e-smith or from json files for mockups
 
 PATH_WEEKLY_HOURS = '/var/lib/nethserver/db/weekly-hours'
 PATH_FWRULES_PLAN = '/var/lib/nethserver/db/fwrules-plan'
 PATH_FWRULES = '/var/lib/nethserver/db/fwrules'
 PATH_BASENAME_SYSTEMD = '/etc/systemd/system/fwrules-{kind}'
 DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-MINUTES_THRESHOLD = 15
+MINUTES_THRESHOLD = os.environ.get('MINUTES_THRESHOLD', 5)
 RULESRC_STARTSWITH = "iprange;lab_"
 
 TEMPLATE_SYSTEMD_TIMER="""
@@ -74,7 +74,7 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_disabl
     fname_timers_created = []
     dow = DOW[dow_int - 1]
 
-    # Set starting hours 15 minutes before hour starts
+    # Set starting hours 5 minutes before hour starts
     hour_start = dt_hour - timedelta(minutes=MINUTES_THRESHOLD)
     hour_start_str= hour_start.time().strftime("%H:%M")
 
@@ -92,7 +92,7 @@ def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_disabl
     rules_to_enable = set(all_fwrules) - set(rules_to_disable)
 
     if rules_to_enable:
-        # Set ending hours 15 minutes after hour ends
+        # Set ending hours 5 minutes after hour ends
         hour_end = dt_hour + timedelta(minutes=MINUTES_THRESHOLD)
         hour_end_str = hour_end.time().strftime("%H:%M")
 
