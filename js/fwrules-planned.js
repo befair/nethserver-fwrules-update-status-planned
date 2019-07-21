@@ -3,7 +3,16 @@ var e_smith_fname_hours = '/var/lib/nethserver/db/weekly-hours';
 var e_smith_fname_plan = '/var/lib/nethserver/db/fwrules-plan';
 var e_smith_fname = '/var/lib/nethserver/db/fwrules';
 
-var FWRULES = {};
+var FWRULES = [];
+var FWRULES_PLAN = [
+    {"name": "1", "type": "configuration"},
+    {"name": "2", "type": "configuration"},
+    {"name": "3", "type": "configuration"},
+    {"name": "4", "type": "configuration"},
+    {"name": "5", "type": "configuration"},
+    {"name": "6", "type": "configuration"},
+    {"name": "7", "type": "configuration"}
+];
 
 var n_rules_to_apply = 0; //Global counter for number of rules
 var n_rules_applied = 0;  //Global counter for number of applied rules
@@ -138,49 +147,54 @@ function fwrules_planned_load() {
 function fwrules_update() {
     var e_smith_key = 0;
     var e_smith_prop = '';
-    var e_smith_struct = [];
+    var e_smith_struct = {};
     n_rules_applied = 0;
     $('input[type=checkbox]').each(function() {
 
         let self = $(this);
+
+        // Build e-smith structure to be passed to the db "set" command
+        // Struct is like: {
+        //   "nday": { "hour": "fwrule1,fwrule2,..." }
+        e_smith_key = self.attr('data-day');
+        let h = self.attr('data-hour');
+        if (!e_smith_struct[e_smith_key]) {
+            e_smith_struct[e_smith_key] = {};
+        }
+        if (!e_smith_struct[e_smith_key][h])
+            e_smith_struct[e_smith_key][h] = [];
+
         let status = "enabled";
         if (this.checked) {
             status = "disabled";
-
-            // Build e-smith structure to be passed to the db "set" command
-            // Struct is like: {
-            //   "nday": { "hour": ["fwrulen", .... ]}
-            e_smith_key = self.attr('data-day');
-            if (!e_smith_struct[e_smith_key]) {
-                e_smith_struct[e_smith_key] = {};
-            }
-            let h = self.attr('data-hour');
-            if (!e_smith_struct[e_smith_key][h]) {
-                e_smith_struct[e_smith_key][h] = [self.attr('data-fwrule')];
-            } else {
-                e_smith_struct[e_smith_key][h].push(self.attr('data-fwrule'));
-            }
+            e_smith_struct[e_smith_key][h].push(self.attr('data-fwrule'));
         }
     });
 
-    // Define firewall plans -- only used to disable rules
-    for (k in DAYS) {
-        let props = [];
-        if (k in e_smith_struct) {
-            let props_obj = e_smith_struct[k];
-            for (khour in props_obj) {
-                props.push(khour);
-                props.push(props_obj[khour].toString());
-            }
-        } else {
-            props = [];
+    for (e_smith_key in e_smith_struct) {
+        let el = e_smith_struct[e_smith_key];
+        for (h in el) {
+            // NOTE: rules list become a string split by ","
+            el[h] = el[h].toString();
         }
-        var proc = cockpit.spawn(['/usr/bin/sudo', '/sbin/e-smith/db', e_smith_fname_plan, 'set', k, "configuration"].concat(props));
-        proc.done(do_success);
-        proc.fail(do_fail);
+    }
 
-        result.empty();
+    // Define firewall plans
+    for (i_daily_plan in FWRULES_PLAN) {
+        let daily_plan = FWRULES_PLAN[i_daily_plan];
+
+        // Take new day plan from e_smith_struct
+        let new_plan = e_smith_struct[daily_plan.name];
+        if (new_plan)
+            daily_plan.props = new_plan;
     };
+    /* WARNING - IMPORTANT: e-smith must do "setjson" in order to be atomic and
+     * avoid multiple serverside events (inotify) management */
+    let proc = cockpit.spawn(['/usr/bin/sudo', '/sbin/e-smith/db', e_smith_fname_plan, 'setjson', JSON.stringify(FWRULES_PLAN)]);
+    proc.done(do_success);
+    proc.fail(do_fail);
+
+    result.empty();
 }
 
 
