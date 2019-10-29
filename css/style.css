@@ -1,0 +1,58 @@
+td {
+    padding: 0.2em !important;
+    border-right: 1px solid lightgray;
+    border-bottom: 1px solid lightgray;
+}
+
+th {
+    padding: 0.2em !important;
+    border-right: 1px solid lightgray;
+}
+
+/* Override centering in the page */
+.container, .container-fluid {
+    margin-left: 1em;
+}
+
+/* Spinning loader */
+#loader {
+    border: 16px solid #8a8a8a;
+    border-top: 16px solid #0099d3;
+    border-radius: 50%;
+    width: 150px;
+    height: 150px;
+
+    -webkit-animation: spin 1s linear infinite;
+    animation: spin 1s linear infinite;
+
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    margin-top: -100px;
+    margin-left: -100px;
+
+    display: none;
+}
+
+@-webkit-keyframes spin {
+    0% { -webkit-transform: rotate(0deg); }
+    100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Highlight the current hour */
+.highlight {
+    background-color: yellow;
+}
+
+.checkbox {
+    width: 1.5em;
+}
+
+.btn-primary {
+    margin-top: 2em;
+}

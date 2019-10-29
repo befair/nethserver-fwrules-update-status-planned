@@ -83,6 +83,8 @@ function is_open(fwrule, el, open_hours) {
 
 function generate_row(fwrule, open_hours) {
     var curr_hour = get_current_hour(day_hours);
+    var date = new Date;
+    var day = date.getDay();
     
     let html = '<tr>';
     html += '<td><label class="control-label" for="fwrule-n' + fwrule.name + '">' + fwrule.props.Description + '</label></td>';
@@ -93,7 +95,7 @@ function generate_row(fwrule, open_hours) {
         let title = fwrule.props.Description + ' - ' + DAYS[el.day] + ' ' + el.hour;
         
         // Highlight the current hour
-        if(el.hour == curr_hour) {
+        if(el.day == day && el.hour == curr_hour) {
             html += '<td class="highlight"><input class="form-control checkbox" title="'+ title +'" type="checkbox" name="fwrule-status" data-fwrule="' + fwrule.name + '" data-day="'+ el.day + '" data-hour="' + el.hour +'"';
         } else {
             html += '<td><input class="form-control checkbox" title="'+ title +'" type="checkbox" name="fwrule-status" data-fwrule="' + fwrule.name + '" data-day="'+ el.day + '" data-hour="' + el.hour +'" ';
@@ -154,10 +156,9 @@ function fwrules_planned_load() {
 }
 
 function get_current_hour(day_hours) {
-    // Get day/hour to highlight current hour
+    // Get current hour to highlight it
     var date = new Date;
     var dt_hour = new Date;
-    var day = date.getDay();
 
     var prev;
 
@@ -165,13 +166,11 @@ function get_current_hour(day_hours) {
     date.setMinutes(0);
 
     day_hours.forEach(function(val) {
-        if(day == val['day']) {
-            dt_hour.setHours(parseInt(val['hour'].split(':')[0]));
-            dt_hour.setMinutes(parseInt(val['hour'].split(':')[1]));
+        dt_hour.setHours(parseInt(val['hour'].split(':')[0]));
+        dt_hour.setMinutes(parseInt(val['hour'].split(':')[1]));
 
-            if(dt_hour <= date)
-                prev = val['hour'];
-        }
+        if(dt_hour <= date)
+            prev = val['hour'];
     });
     
     return prev;
