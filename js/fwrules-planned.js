@@ -51,7 +51,7 @@ function load_thead(data) {
     $('#fwrules-thead').prepend("<tr><th>LUOGO</th>" + super_headers.map(generate_th_rows) + "</tr>");
 
     fwrules_planned_load();
-    $("#fwrules-update").on("click", fwrules_update);
+    $("#fwrules-update").on("click", on_submit);
 }
 
 function hours_load() {
@@ -82,12 +82,23 @@ function is_open(fwrule, el, open_hours) {
 }
 
 function generate_row(fwrule, open_hours) {
+    var curr_hour = get_current_hour(day_hours);
+    
     let html = '<tr>';
     html += '<td><label class="control-label" for="fwrule-n' + fwrule.name + '">' + fwrule.props.Description + '</label></td>';
+    // console.log(day_hours);
+    
     for (k in day_hours) {
         let el = day_hours[k];
         let title = fwrule.props.Description + ' - ' + DAYS[el.day] + ' ' + el.hour;
-        html += '<td><input class="form-control" title="'+ title +'" type="checkbox" name="fwrule-status" data-fwrule="' + fwrule.name + '" data-day="'+ el.day + '" data-hour="' + el.hour +'" ';
+        
+        // Highlight the current hour
+        if(el.hour == curr_hour) {
+            html += '<td class="highlight"><input class="form-control checkbox" title="'+ title +'" type="checkbox" name="fwrule-status" data-fwrule="' + fwrule.name + '" data-day="'+ el.day + '" data-hour="' + el.hour +'"';
+        } else {
+            html += '<td><input class="form-control checkbox" title="'+ title +'" type="checkbox" name="fwrule-status" data-fwrule="' + fwrule.name + '" data-day="'+ el.day + '" data-hour="' + el.hour +'" ';
+        }
+
         if (is_open(fwrule, el, open_hours)) {
             html += ' checked ></td>';
         } else {
@@ -140,6 +151,30 @@ function fwrules_planned_load() {
     proc.fail(do_fail);
 
     result.empty();
+}
+
+function get_current_hour(day_hours) {
+    // Get day/hour to highlight current hour
+    var date = new Date;
+    var dt_hour = new Date;
+    var day = date.getDay();
+
+    var prev;
+
+    // Set minutes of current time to 0
+    date.setMinutes(0);
+
+    day_hours.forEach(function(val) {
+        if(day == val['day']) {
+            dt_hour.setHours(parseInt(val['hour'].split(':')[0]));
+            dt_hour.setMinutes(parseInt(val['hour'].split(':')[1]));
+
+            if(dt_hour <= date)
+                prev = val['hour'];
+        }
+    });
+    
+    return prev;
 }
 
 /**********************************
@@ -226,3 +261,19 @@ function append_output(data) {
     output.append(document.createTextNode(data));
 }
 
+function on_submit() {
+    display_loading();
+    fwrules_update();
+}
+
+function display_loading() {
+    document.getElementById("loader").style.display="unset";
+    document.getElementById("fwrules-update").style.display="none";
+    document.getElementsByClassName("container-fluid")[0].style.opacity="0.2"
+
+    setTimeout(function(){
+        document.getElementById("fwrules-update").style.display="unset";
+        document.getElementById("loader").style.display="none";
+        document.getElementsByClassName("container-fluid")[0].style.opacity="1"
+    }, 10000); 
+}
