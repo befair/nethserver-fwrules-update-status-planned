@@ -6,12 +6,15 @@ All-in-one script file to manage systemd timers.
 Include systemd units initialization if not found.
 """
 
-import inotify.adapters, inotify.constants
 import csv
-from datetime import datetime, timedelta, time
-import subprocess
-import os
 import json
+import os
+import subprocess
+import time
+from datetime import datetime, timedelta
+
+import inotify.adapters
+import inotify.constants
 
 # --- Configuration ---
 DEBUG = os.environ.get('APP_DEBUG', False)
@@ -59,7 +62,6 @@ if not DEBUG:
     WantedBy = multi-user.target
     """.format(kind=kind))
 
-# TODO -- setup default weekly hours?
 
 
 
@@ -213,24 +215,65 @@ def _main():
             dow_int_now = int(dt_now.strftime("%w"))
             waited = False
             filenames = os.listdir(dirname)
+
+            # Check current day rules and apply rules for the current hour
+            fwrules_plan_json = subprocess.check_output(["/sbin/e-smith/db", PATH_FWRULES_PLAN, "printjson"])
+            fwrules_plan = json.loads(fwrules_plan_json)
+
+            fwrules_json = subprocess.check_output(["/sbin/e-smith/db", PATH_FWRULES, "printjson"])
+            fwrules = json.loads(fwrules_json)
+
+            dow_now = dt_now.strftime("%w")
+
+            # Check current day rules and apply changes for the current hour
+            for plan in fwrules_plan:
+                if plan['name'] == dow_now and 'props' in plan:
+                    # Command to instantly enable/disable fw rules
+                    cmd = "/usr/share/cockpit/nethserver-fwrules-update-status-planned/bin/apply-rules.py"
+                    
+                    # Create a list of ordered plan times
+                    dt_hours = [datetime.strptime(x, "%H:%M") for x in plan["props"].keys()]
+                    dt_hours.sort()
+
+                    # Loop till we reach current hour
+                    for dt_hour in dt_hours:
+                        if dt_hour.time() <= dt_now.time():
+                            prev = dt_hour
+                        else:
+                            break
+
+                    dt_hour_key = prev.strftime("%H:%M")
+
+                    for rule in fwrules:
+                        if rule['name'] in plan['props'][dt_hour_key].split(','):
+                            print("Disable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
+                            subprocess.check_output([cmd, 'disabled', rule['name']])
+                        else:
+                            print("Enable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
+                            subprocess.check_output([cmd, 'enabled', rule['name']])
+            
             for kind in ("disable", "enable"):
                 fname_start = os.path.basename(PATH_BASENAME_SYSTEMD).format(kind=kind)
                 timer_names = [ fname for fname in filenames if fname.startswith(fname_start) and fname.endswith(".timer")]
+
                 # 1. Parse timer name
                 for fname in timer_names:
                     dow_and_time = fname[len(fname_start) + 1:-len(".timer")]
                     dow, hour, minute = dow_and_time.split("-")
                     dow_int = DOW.index(dow) + 1
+
                     if dow_int == dow_int_now:
                         # If the timer is for the current day
                         # Check if timedelta from now is <= 2 minutes
                         # if it is => delay for 5 minutes and exit from all loops
                         # if not => proceed in deleting timers
                         dt_timer = datetime(dt_now.year, dt_now.month, dt_now.day, int(hour), int(minute))
+
                         if abs(dt_now - dt_timer) < timedelta(minutes=2):
-                            delay(360)
+                            time.sleep(360)
                             waited = True
                             break
+
                 if waited:
                     break
 
