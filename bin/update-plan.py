@@ -245,12 +245,15 @@ def _main():
                     dt_hour_key = prev.strftime("%H:%M")
 
                     for rule in fwrules:
-                        if rule['name'] in plan['props'][dt_hour_key].split(','):
-                            print("Disable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
-                            subprocess.check_output([cmd, 'disabled', rule['name']])
+                        if dt_hour_key not in plan['props']:
+                            print("> Error in fw_plan: missing key {0}".format(dt_hour_key))
                         else:
-                            print("Enable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
-                            subprocess.check_output([cmd, 'enabled', rule['name']])
+                            if rule['name'] in plan['props'][dt_hour_key].split(','):
+                                print("Disable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
+                                subprocess.check_output([cmd, 'disabled', rule['name']])
+                            else:
+                                print("Enable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
+                                subprocess.check_output([cmd, 'enabled', rule['name']])
             
             for kind in ("disable", "enable"):
                 fname_start = os.path.basename(PATH_BASENAME_SYSTEMD).format(kind=kind)
