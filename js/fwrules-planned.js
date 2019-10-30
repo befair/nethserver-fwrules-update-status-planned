@@ -39,7 +39,15 @@ function load_thead(data) {
     let html = '';
     for (k in obj) {
         let timing = obj[k];
-        super_headers.push({ 'val': DAYS[timing.name], 'colspan': Object.keys(timing.props).length });
+
+        // Count only rules with numeric index
+        var columns = 0;
+
+        for(rule in timing.props)
+            if(parseInt(rule))
+                columns+=1
+
+        super_headers.push({ 'val': DAYS[timing.name], 'colspan': columns });
         for (hour_n in timing.props) {
             if (parseInt(hour_n)) {
                 sub_headers.push({'val': hour_n, 'colspan': 1});
@@ -88,7 +96,6 @@ function generate_row(fwrule, open_hours) {
     
     let html = '<tr>';
     html += '<td><label class="control-label" for="fwrule-n' + fwrule.name + '">' + fwrule.props.Description + '</label></td>';
-    // console.log(day_hours);
     
     for (k in day_hours) {
         let el = day_hours[k];
