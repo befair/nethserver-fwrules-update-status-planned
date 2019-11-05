@@ -163,21 +163,26 @@ function fwrules_planned_load() {
 }
 
 function get_current_hour(day_hours) {
+    var prev;
+
     // Get current hour to highlight it
     var date = new Date;
     var dt_hour = new Date;
 
-    var prev;
+    // Get current week day
+    var dt_day = date.getDay();
 
     // Set minutes of current time to 0
     date.setMinutes(0);
 
     day_hours.forEach(function(val) {
-        dt_hour.setHours(parseInt(val['hour'].split(':')[0]));
-        dt_hour.setMinutes(parseInt(val['hour'].split(':')[1]));
+        if(val['day'] == dt_day) {
+            dt_hour.setHours(parseInt(val['hour'].split(':')[0]));
+            dt_hour.setMinutes(parseInt(val['hour'].split(':')[1]));
 
-        if(dt_hour <= date)
-            prev = val['hour'];
+            if(dt_hour <= date || prev == undefined)
+                prev = val['hour'];
+        }
     });
     
     return prev;

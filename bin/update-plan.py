@@ -235,6 +235,9 @@ def _main():
                     dt_hours = [datetime.strptime(x, "%H:%M") for x in plan["props"].keys()]
                     dt_hours.sort()
 
+                    # Set initial value for the previous hour
+                    prev = dt_hours[0]
+
                     # Loop till we reach current hour
                     for dt_hour in dt_hours:
                         if dt_hour.time() <= dt_now.time():
