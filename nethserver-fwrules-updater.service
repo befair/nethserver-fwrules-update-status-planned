@@ -1,0 +1,11 @@
+[Unit]
+After=network.target
+Description=Nethserver Firewall updater and planner
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python /usr/share/cockpit/nethserver-fwrules-update-status-planned/bin/update-plan.py
+Restart=always
+
+[Install]
+WantedBy=default.target
