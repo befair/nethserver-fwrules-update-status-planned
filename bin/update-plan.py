@@ -8,6 +8,7 @@ Include systemd units initialization if not found.
 
 import csv
 import json
+import logging
 import os
 import subprocess
 import time
@@ -28,6 +29,7 @@ PATH_BASENAME_SYSTEMD = '/etc/systemd/system/fwrules-{kind}'
 DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 MINUTES_THRESHOLD = os.environ.get('APP_MINUTES_THRESHOLD', 5)
 RULESRC_STARTSWITH = "iprange;lab_"
+LOG_FILE = "/var/log/nethserver-fwrules-updater.log"
 
 TEMPLATE_SYSTEMD_TIMER="""
 [Unit]
@@ -62,7 +64,8 @@ if not DEBUG:
     WantedBy = multi-user.target
     """.format(kind=kind))
 
-
+# Setup logging
+logging.basicConfig(filename=LOG_FILE,level=logging.DEBUG, format='[%(asctime)s] %(message)s')
 
 
 def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_disable=[]):
@@ -249,13 +252,13 @@ def _main():
 
                     for rule in fwrules:
                         if dt_hour_key not in plan['props']:
-                            print("> Error in fw_plan: missing key {0}".format(dt_hour_key))
+                            logging.warning("Error in fw_plan: missing key {0}".format(dt_hour_key))
                         else:
                             if rule['name'] in plan['props'][dt_hour_key].split(','):
-                                print("Disable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
+                                logging.debug("Disable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
                                 subprocess.check_output([cmd, 'disabled', rule['name']])
                             else:
-                                print("Enable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
+                                loggin.debug("Enable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
                                 subprocess.check_output([cmd, 'enabled', rule['name']])
             
             for kind in ("disable", "enable"):
@@ -295,7 +298,6 @@ def _main():
 
             # Step 3. read new plan and create new timers to apply rules
             read_fwplan()
-
 
 
 if __name__ == '__main__':
