@@ -258,7 +258,7 @@ def _main():
                                 logging.debug("Disable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
                                 subprocess.check_output([cmd, 'disabled', rule['name']])
                             else:
-                                loggin.debug("Enable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
+                                logging.debug("Enable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
                                 subprocess.check_output([cmd, 'enabled', rule['name']])
             
             for kind in ("disable", "enable"):
