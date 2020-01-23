@@ -65,7 +65,7 @@ if not DEBUG:
     """.format(kind=kind))
 
 # Setup logging
-logging.basicConfig(filename=LOG_FILE,level=logging.ERROR, format='[%(asctime)s] %(message)s')
+logging.basicConfig(filename=LOG_FILE,level=logging.INFO, format='[%(asctime)s] %(message)s')
 
 
 def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_disable=[]):
@@ -255,10 +255,10 @@ def _main():
                             logging.error("Error in fw_plan: missing key {0}".format(dt_hour_key))
                         else:
                             if rule['name'] in plan['props'][dt_hour_key].split(','):
-                                logging.info("Disable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
+                                logging.info("Disabling rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
                                 subprocess.check_output([cmd, 'disabled', rule['name']])
                             else:
-                                logging.info("Enable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
+                                logging.info("Enabling rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
                                 subprocess.check_output([cmd, 'enabled', rule['name']])
             
             for kind in ("disable", "enable"):
@@ -296,6 +296,7 @@ def _main():
                     abs_fname = os.path.join(os.path.dirname(PATH_BASENAME_SYSTEMD), fname)
                     os.remove(abs_fname)
 
+            logging.info("Creating week timers...")
             # Step 3. read new plan and create new timers to apply rules
             read_fwplan()
 
