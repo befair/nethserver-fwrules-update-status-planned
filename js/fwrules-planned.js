@@ -24,6 +24,8 @@ var DAYS = {
     1: "LUN", 2: "MAR", 3: "MER", 4: "GIO", 5: "VEN", 6: "SAB", 7: "DOM"
 };
 
+var LOG_PATH = "/var/log/nethserver-fwrules-updater.log";
+
 $(document).ready(hours_load);
 
 
@@ -287,4 +289,37 @@ function display_loading() {
         document.getElementById("loader").style.display="none";
         document.getElementsByClassName("container-fluid")[0].style.opacity="1"
     }, 10000); 
+}
+
+/* Log area */
+var log_updater;
+
+function toggle_log() {
+    var log = document.getElementById("log");
+
+    // Toggle
+    if(log.style.display == "none") {
+        // Update log
+        load_log()
+
+        // Update log every second
+        log_updater = setInterval(function() { load_log() }, 1000);
+
+        log.style.display = "block";
+    } else {
+        log.style.display = "none";
+
+        // Stop updating log
+        clearTimeout(log_updater);
+    }
+}
+
+function load_log() {
+    // Get log content
+    let proc = cockpit.spawn(['/usr/bin/cat', LOG_PATH]);
+    proc.stream((data) => {
+        // Replace with HTML endlines
+        var log = document.getElementById("log");
+        log.value = data;
+    });
 }

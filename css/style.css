@@ -56,3 +56,12 @@ th {
 .btn-primary {
     margin-top: 2em;
 }
+
+#log {
+    margin-top: 20px;
+    width: 500px;
+    height: auto;
+    min-height: 200px;
+    background-color: #dedede;
+    resize: none;
+}

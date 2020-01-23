@@ -65,7 +65,7 @@ if not DEBUG:
     """.format(kind=kind))
 
 # Setup logging
-logging.basicConfig(filename=LOG_FILE,level=logging.DEBUG, format='[%(asctime)s] %(message)s')
+logging.basicConfig(filename=LOG_FILE,level=logging.ERROR, format='[%(asctime)s] %(message)s')
 
 
 def fwplan_create_timers_for_hour(dow_int, dt_hour, all_fwrules, rules_to_disable=[]):
@@ -252,13 +252,13 @@ def _main():
 
                     for rule in fwrules:
                         if dt_hour_key not in plan['props']:
-                            logging.warning("Error in fw_plan: missing key {0}".format(dt_hour_key))
+                            logging.error("Error in fw_plan: missing key {0}".format(dt_hour_key))
                         else:
                             if rule['name'] in plan['props'][dt_hour_key].split(','):
-                                logging.debug("Disable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
+                                logging.info("Disable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
                                 subprocess.check_output([cmd, 'disabled', rule['name']])
                             else:
-                                logging.debug("Enable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
+                                logging.info("Enable rule '{0}' at hour '{1}'".format(rule['name'], dt_hour_key))
                                 subprocess.check_output([cmd, 'enabled', rule['name']])
             
             for kind in ("disable", "enable"):
