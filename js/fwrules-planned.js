@@ -295,6 +295,7 @@ function display_loading() {
 var log_updater;
 
 function toggle_log() {
+    var btn = document.getElementById("log-btn");
     var log = document.getElementById("log");
 
     // Toggle
@@ -305,12 +306,16 @@ function toggle_log() {
         // Update log every second
         log_updater = setInterval(function() { load_log() }, 1000);
 
+        // Open log and change button text
         log.style.display = "block";
+        btn.innerText = "Chiudi Log";
     } else {
-        log.style.display = "none";
-
         // Stop updating log
         clearTimeout(log_updater);
+
+        // Close log and change button text
+        log.style.display = "none";
+        btn.innerText = "Apri Log";
     }
 }
 
