@@ -28,6 +28,14 @@ var LOG_PATH = "/var/log/nethserver-fwrules-updater.log";
 
 $(document).ready(hours_load);
 
+// Check if user is authorized
+checkUserAuth().then(res => {
+  if(res == false) {
+    alert("Non hai i permessi necessari per visualizzare questa pagina.")
+    cockpit.logout();
+  }
+});
+
 
 /***************************************
  * BEGIN header loading with hours info
@@ -327,4 +335,19 @@ function load_log() {
         var log = document.getElementById("log");
         log.value = data;
     });
+}
+
+function checkUserAuth() {
+  authorizedGroups = ['root', 'docenti'];
+
+  return cockpit.user().then(user => {
+    let rv = false;
+
+    authorizedGroups.forEach(group => {
+      if(user['groups'].indexOf(group) >= 0)
+        rv = true;
+    });
+
+    return rv;
+  })
 }
