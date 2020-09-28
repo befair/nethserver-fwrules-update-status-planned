@@ -1,3 +1,6 @@
+// Config
+let authorizedGroups = ['root'];
+
 var result = $("#result");
 var e_smith_fname_hours = '/var/lib/nethserver/db/weekly-hours';
 var e_smith_fname_plan = '/var/lib/nethserver/db/fwrules-plan';
@@ -336,8 +339,6 @@ function load_log() {
 }
 
 function checkUserAuth() {
-  authorizedGroups = ['root', 'docenti', 'ata-tecnici'];
-
   return cockpit.user().then(user => {
     let rv = false;
 
