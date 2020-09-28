@@ -30,10 +30,8 @@ $(document).ready(hours_load);
 
 // Check if user is authorized
 checkUserAuth().then(res => {
-  if(res == false) {
-    alert("Non hai i permessi necessari per visualizzare questa pagina.")
+  if(res == false)
     cockpit.logout();
-  }
 });
 
 
