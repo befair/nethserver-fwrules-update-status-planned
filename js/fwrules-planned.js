@@ -338,7 +338,7 @@ function load_log() {
 }
 
 function checkUserAuth() {
-  authorizedGroups = ['root', 'docenti'];
+  authorizedGroups = ['root', 'docenti', 'ata-tecnici'];
 
   return cockpit.user().then(user => {
     let rv = false;
